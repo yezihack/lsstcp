@@ -25,4 +25,3 @@ func (p *bufferPool) Get() []byte {
 func (p *bufferPool) Put(b []byte) {
 	p.Pool.Put(b)
 }
-

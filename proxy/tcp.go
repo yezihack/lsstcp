@@ -3,36 +3,35 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"github.com/ThreeKing2018/goutil/golog"
 	"io"
 	"net"
 	"syscall"
 	"time"
+
+	"github.com/ThreeKing2018/goutil/golog"
 )
-
-
 
 type TCP struct {
 	listenAddr string
 	remoteAddr string
-	state bool
-	ctx context.Context
+	state      bool
+	ctx        context.Context
 }
 
 func (tcp *TCP) SetremoteAddr(remoteAddr string) {
 	tcp.remoteAddr = remoteAddr
 }
 
-func NewTCP(ctx context.Context,localAddr,remoteAddr string) *TCP {
-	 t :=&TCP{
-		listenAddr:localAddr,
-		remoteAddr:remoteAddr,
-		state:false,
-		ctx:ctx,
+func NewTCP(ctx context.Context, localAddr, remoteAddr string) *TCP {
+	t := &TCP{
+		listenAddr: localAddr,
+		remoteAddr: remoteAddr,
+		state:      false,
+		ctx:        ctx,
 	}
 
-	 go t.Start()
-	 return t
+	go t.Start()
+	return t
 }
 
 func (tcp *TCP) Start() (err error) {
@@ -53,14 +52,12 @@ func (tcp *TCP) Start() (err error) {
 			ln.Close()
 			tcp.state = true
 			golog.Infow("tcp server close",
-				"addr",tcp.listenAddr)
+				"addr", tcp.listenAddr)
 		}
 	}()
 
-
 	golog.Debugw("tcp 监听地址",
-		"ipaddr",tcp.listenAddr)
-
+		"ipaddr", tcp.listenAddr)
 
 	var tempDelay time.Duration
 	for {
@@ -91,27 +88,26 @@ func (tcp *TCP) Start() (err error) {
 	return
 }
 
-
 func (tcp *TCP) handler(conn net.Conn) {
 	defer func() {
 		if err := recover(); err != nil {
-			golog.Error("[tcp]--recover-- ",err)
+			golog.Error("[tcp]--recover-- ", err)
 		}
 	}()
 
 	//连接远端
-	remote, err := net.Dial("tcp",tcp.remoteAddr)
+	remote, err := net.Dial("tcp", tcp.remoteAddr)
 
 	if err != nil {
 		if ne, ok := err.(*net.OpError); ok &&
 			(ne.Err == syscall.EMFILE || ne.Err == syscall.ENFILE) {
 			// log too many open file error
 			// EMFILE is process reaches open file limits, ENFILE is system limit
-			golog.Error("dial error:too many open file error","err", err)
+			golog.Error("dial error:too many open file error", "err", err)
 		} else {
 			golog.Warnw("warn connecting",
-				"remoteaddr",tcp.remoteAddr,
-				"err",err)
+				"remoteaddr", tcp.remoteAddr,
+				"err", err)
 		}
 		return
 	}
@@ -124,14 +120,11 @@ func (tcp *TCP) handler(conn net.Conn) {
 
 }
 
-
-
-
 /*src读取数据 写入 dst*/
-func pipeThenClose(src,dst net.Conn) {
+func pipeThenClose(src, dst net.Conn) {
 	defer func() {
 		if err := recover(); err != nil {
-			golog.Errorw("--recover-- ","err",err)
+			golog.Errorw("--recover-- ", "err", err)
 		}
 	}()
 
@@ -143,10 +136,9 @@ func pipeThenClose(src,dst net.Conn) {
 		bufPool.Put(buf)
 	}()
 
-
 	var (
 		err error
-		n int
+		n   int
 	)
 	for {
 		n, err = src.Read(buf)
@@ -154,10 +146,10 @@ func pipeThenClose(src,dst net.Conn) {
 			//响应的大小
 			_, err = dst.Write(buf[0:n])
 			if err != nil {
-				golog.Warnw("","err",err)
+				golog.Warnw("", "err", err)
 				break
 			}
-			golog.Debugw("","dst write byte",n)
+			golog.Debugw("", "dst write byte", n)
 
 		}
 
@@ -166,12 +158,10 @@ func pipeThenClose(src,dst net.Conn) {
 			// identify this specific error. So just leave the error along for now.
 			// More info here: https://code.google.com/p/go/issues/detail?id=4373
 			if err != io.EOF {
-				golog.Debugw("err != nil  n == 0 ","err",err)
+				golog.Debugw("err != nil  n == 0 ", "err", err)
 			}
 			break
 		}
 	}
 
 }
-
-

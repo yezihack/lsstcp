@@ -2,12 +2,11 @@ package serverRoom
 
 import (
 	"flag"
+	"path"
+
 	"github.com/ThreeKing2018/goutil/golog"
 	"github.com/ThreeKing2018/goutil/golog/conf"
-	"path"
 )
-
-
 
 func Init() {
 	flag.Parse()
@@ -21,7 +20,6 @@ func Init() {
 		golog.ZAPLOG,
 		conf.WithLogType(conf.LogJsontype),
 		conf.WithLogLevel(conf.DebugLevel),
-		conf.WithFilename(path.Join(Arg.logdir,ServiceName+".log")),
+		conf.WithFilename(path.Join(Arg.logdir, ServiceName+".log")),
 	)
 }
-

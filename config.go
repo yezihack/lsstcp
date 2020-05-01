@@ -1,50 +1,59 @@
 package serverRoom
 
 import (
-	"github.com/fsnotify/fsnotify"
-	goconfig "gogs.163.com/feiyu/goutil/config"
+	"encoding/json"
+	"io/ioutil"
+	"log"
 	"sync"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/unknwon/com"
 )
+
 //配置文件操作
 
+type SingleConfig struct {
+	Debug bool              `json:"debug"`
+	Tcp   map[string]string `json:"tcp"`
+}
 
-type singleton goconfig.Viperable
-
-
-var v singleton
+var v SingleConfig
 var once sync.Once
 
-
-func GetConfigInstance() singleton {
+func GetConfigInstance() SingleConfig {
 	once.Do(load)
 	return v
 }
 
-//配置文件初始化
-func load() {
-
-	v = goconfig.New()
-	v.SetConfig(Arg.configfile,"json","/etc","/root",".")
-	err := v.ReadConfig()
-	if err != nil {
-		panic(err)
-	}
-
-	v.Getconfig()
-
+func (conf SingleConfig) GetStringMapString() map[string]string {
+	load()
+	return v.Tcp
 }
 
-
+//配置文件初始化
+func load() {
+	confPath := Arg.configfile
+	if !com.IsFile(confPath) {
+		log.Fatalln(confPath + " not exists")
+	}
+	data, err := ioutil.ReadFile(confPath)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+	if err = json.Unmarshal(data, &v); err != nil {
+		log.Fatalln(err)
+	}
+}
 
 type ConfResponse struct {
 	Action string
-	Key   string
-	Value interface{}
-	Error error
+	Key    string
+	Value  interface{}
+	Error  error
 }
 
-
-func ConfWatch(stop chan struct{})  <-chan *ConfResponse{
+func ConfWatch(stop chan struct{}) <-chan *ConfResponse {
 	respChan := make(chan *ConfResponse, 10)
 
 	go func() {
@@ -90,7 +99,5 @@ func ConfWatch(stop chan struct{})  <-chan *ConfResponse{
 		}
 	}()
 
-
 	return respChan
 }
-
